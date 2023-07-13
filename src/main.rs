@@ -1,4 +1,8 @@
-use tree_sitter::{Language, Parser};
+use tree_sitter::{Language, Parser, Query, QueryCursor};
+
+use clap::{arg, value_parser, Command};
+use ignore::Walk;
+use std::{fs, path::PathBuf};
 
 extern "C" {
     fn tree_sitter_erlang() -> Language;
@@ -6,6 +10,49 @@ extern "C" {
 
 fn main() {
     println!("Olá!");
+
+    let matches = Command::new("scryer")
+        .arg(
+            arg!(-r --root <ROOT> "Path of the root of the project")
+                .default_value(".")
+                // .value_parser(value_parser!(PathBuf))
+        )
+        .arg(arg!(
+            -q --query <QUERY> "Tree-sitter query"
+        )
+             .required(true))
+        .get_matches();
+
+    let root = matches.get_one::<String>("root").unwrap();
+    let query_source = matches.get_one::<String>("query").unwrap();
+
+    let lang = unsafe { tree_sitter_erlang() };
+    let mut parser = Parser::new();
+    parser.set_language(lang).unwrap();
+
+    for r in Walk::new(root) {
+        if let Ok(r) = r {
+            let p = r.path();
+            match p.extension() {
+                Some(e) if e == "erl" => {
+                    let source = fs::read_to_string(p).unwrap();
+                    let tree = parser.parse(&source, None).unwrap();
+                    let root = tree.root_node();
+                    println!("whole tree:\n  {}", root.to_sexp());
+                    let query = Query::new(lang, query_source).unwrap();
+                    let mut cursor = QueryCursor::new();
+                    for m in cursor.matches(&query, root, source.as_bytes()) {
+                        println!("query match: {:?}", m);
+                        for cap in m.captures {
+                            println!("capture: {:?}", cap);
+                            println!("capture text: {:?}", cap.node.utf8_text(source.as_bytes()));
+                        }
+                    }
+                },
+                _ => continue,
+            }
+        }
+    }
 }
 
 #[cfg(test)]

@@ -10,4 +10,6 @@ edition = "2021"
 cc = "1.0"
 
 [dependencies]
+clap = "4.3.11"
+ignore = "0.4.20"
 tree-sitter = "0.20.10"
