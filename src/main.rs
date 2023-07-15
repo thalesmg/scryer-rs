@@ -46,7 +46,7 @@ fn main() {
         if let Ok(r) = r {
             let p = r.path();
             match p.extension() {
-                Some(e) if e == "erl" => {
+                Some(e) if e == "erl" || e == "hrl" => {
                     let source = fs::read_to_string(p).unwrap();
                     let tree = parser.parse(&source, None).unwrap();
                     let root = tree.root_node();
