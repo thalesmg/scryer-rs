@@ -1,6 +1,6 @@
 use tree_sitter::{Language, Parser, Query, QueryCapture, QueryCursor};
 
-use clap::{arg, value_parser, Command};
+use clap::{arg, value_parser, Arg, ArgAction, ArgGroup, Command};
 use ignore::Walk;
 use std::{fs, path::PathBuf};
 
@@ -9,22 +9,34 @@ extern "C" {
 }
 
 fn main() {
-    println!("Olá!");
-
     let matches = Command::new("scryer")
         .arg(
             arg!(-r --root <ROOT> "Path of the root of the project").default_value("."), // .value_parser(value_parser!(PathBuf))
         )
+        .arg(arg!(
+            -q --query <QUERY> "Tree-sitter query"
+        ))
+        .arg(arg!(
+            -Q --"query-file" <QUERY_FILE> "File containing tree-sitter query"
+        ))
+        .group(
+            ArgGroup::new("input")
+                .required(true)
+                .args(["query", "query-file"]),
+        )
         .arg(
-            arg!(
-                -q --query <QUERY> "Tree-sitter query"
-            )
-            .required(true),
+            Arg::new("root-sexpr")
+                .long("root-sexpr")
+                .action(ArgAction::SetTrue),
         )
         .get_matches();
 
     let root = matches.get_one::<String>("root").unwrap();
-    let query_source = matches.get_one::<String>("query").unwrap();
+    let query_source = if let Some(path) = matches.get_one::<String>("query-file") {
+        fs::read_to_string(path).unwrap()
+    } else {
+        matches.get_one::<String>("query").unwrap().to_string()
+    };
 
     let lang = unsafe { tree_sitter_erlang() };
     let mut parser = Parser::new();
@@ -38,8 +50,10 @@ fn main() {
                     let source = fs::read_to_string(p).unwrap();
                     let tree = parser.parse(&source, None).unwrap();
                     let root = tree.root_node();
-                    println!("whole tree:\n  {}", root.to_sexp());
-                    let query = Query::new(lang, query_source).unwrap();
+                    if matches.get_flag("root-sexpr") {
+                        println!("whole tree:\n  {}", root.to_sexp());
+                    }
+                    let query = Query::new(lang, &query_source).unwrap();
                     let mut cursor = QueryCursor::new();
                     let mut matches = cursor.matches(&query, root, source.as_bytes()).peekable();
                     if matches.peek().is_some() {
