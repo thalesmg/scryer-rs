@@ -83,7 +83,7 @@ fn format_capture(capture: &QueryCapture, capture_names: &[String], source: &str
     let cap_name = &capture_names[capture.index as usize];
     let cap_text = capture.node.utf8_text(source.as_bytes()).unwrap_or("⁈⁈⁈");
     println!("  {}:", cap_name);
-    println!("    {}: {}", line_num, cap_text);
+    println!("    {}: {}", line_num + 1, cap_text);
 }
 
 #[cfg(test)]
