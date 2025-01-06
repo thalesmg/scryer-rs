@@ -1,0 +1,7 @@
+[source,sh]
+----
+cd ~/dev/rust/scryer-rs && cargo run -- -r /tmp/bah.erl -q '(_)' --root-sexpr
+
+cd ~/dev/rust/scryer-rs && cargo run -- -r ~/dev/emqx/emqx5-ubuntu/apps/emqx_resource/src/emqx_resource_buffer_worker.erl -Q fn-call.scm
+
+----
